@@ -13,7 +13,7 @@ export default async function NotesPage() {
           href="/protected/notes/new" 
           className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90"
         >
-          Add New Note
+          Add New Note testing
         </Link>
       </div>
       <div className="grid gap-4">
