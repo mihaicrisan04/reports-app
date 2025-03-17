@@ -19,7 +19,7 @@ export const signUpAction = async (formData: FormData) => {
     );
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -27,16 +27,48 @@ export const signUpAction = async (formData: FormData) => {
     },
   });
 
-  if (error) {
-    console.error(error.code + " " + error.message);
-    return encodedRedirect("error", "/sign-up", error.message);
-  } else {
-    return encodedRedirect(
-      "success",
-      "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
-    );
+  if (authError) {
+    console.error(authError.code + " " + authError.message);
+    return encodedRedirect("error", "/sign-up", authError.message);
+  } 
+
+  // If auth was successful, we can create a new user in public.users table
+  if (authData.user) {
+    // const { data: existingUser } = await supabase
+    //   .from('users')
+    //   .select('*')
+    //   .eq('auth_user_id', authData.user.id)
+    //   .single();
+
+    // if (!existingUser) {
+    //   const { data, error: dbError } = await supabase
+    //     .from('users') // Remove 'public.' prefix
+    //     .insert([{  // Wrap in array
+    //       auth_user_id: authData.user.id,
+    //       name: email.split('@')[0],
+    //       role: 'educator',
+    //       created_at: new Date().toISOString()
+    //     }])
+    //     .select()
+    //     .single();
+
+    //   if (dbError) {
+    //     console.error("Full database error:", {
+    //       message: dbError.message,
+    //       details: dbError.details,
+    //       hint: dbError.hint,
+    //       code: dbError.code
+    //     });
+        // return encodedRedirect("error", "/sign-up", "Could not create user");
+      // }
+    // }
   }
+
+  return encodedRedirect(
+    "success",
+    "/sign-up",
+    "Check your email for a confirmation link",
+  );
 };
 
 export const signInAction = async (formData: FormData) => {

@@ -1,60 +1,78 @@
 'use client';
 
 import { createClient } from "@/utils/supabase/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export default function NewNotePage() {
+export default function EditNotePage({ params }: { params: { id: string } }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
+  useEffect(() => {
+    async function fetchNote() {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+      
+      if (error || !data) {
+        console.error('Error fetching note:', error);
+        router.push('/protected/notes');
+        return;
+      }
+      
+      setTitle(data.title);
+      setContent(data.content || '');
+      setIsLoading(false);
+    }
+    
+    fetchNote();
+  }, [params.id, router, supabase]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.log("No authenticated use found")
-      setIsSubmitting(false);
-      router.push('/sign-in');
-      return;
-    }
     
     const { error } = await supabase
       .from('notes')
-      .insert([{ 
-        title, 
+      .update({
+        title,
         content,
-        user_id: user.id,
-        updated_at: new Date().toISOString()
-      }]);
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id);
 
     if (error) {
-      console.error('Error creating note:', error);
+      console.error('Error updating note:', error);
       setIsSubmitting(false);
     } else {
-      router.push('/protected/notes');
+      router.push(`/protected/notes/${params.id}`);
       router.refresh();
     }
   };
 
+  if (isLoading) {
+    return <div className="w-full max-w-2xl mx-auto p-6">Loading...</div>;
+  }
+
   return (
     <div className="flex-1 w-full max-w-2xl mx-auto">
-      <Link href="/protected/notes" className="inline-block mb-6">
+      <Link href={`/protected/notes/${params.id}`} className="inline-block mb-6">
         <Button variant="ghost">
           <ArrowLeft className="mr-2" size={16} />
-          Back to Notes
+          Back to Note
         </Button>
       </Link>
 
-      <h1 className="text-2xl font-bold mb-6">Create New Note</h1>
+      <h1 className="text-2xl font-bold mb-6">Edit Note</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -91,7 +109,7 @@ export default function NewNotePage() {
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : 'Save Note'}
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </form>
