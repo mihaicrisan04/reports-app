@@ -161,3 +161,103 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export const createNote = async (formData: FormData) => {
+  const supabase = await createClient();
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  if (!title) {
+    throw new Error("Title is required");
+  }
+
+  const { data, error } = await supabase
+    .from("notes")
+    .insert({
+      title,
+      content,
+      user_id: user.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return redirect("/protected/notes");
+};
+
+export const updateNote = async (formData: FormData) => {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  if (!id || !title) {
+    throw new Error("ID and title are required");
+  }
+
+  const { data, error } = await supabase
+    .from("notes")
+    .update({
+      title,
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return redirect("/protected/notes");
+};
+
+export const deleteNote = async (formData: FormData) => {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  if (!id) {
+    throw new Error("ID is required");
+  }
+
+  const { error } = await supabase
+    .from("notes")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(error.message || 'Failed to delete note');
+  }
+
+  return redirect("/protected/notes");
+};
