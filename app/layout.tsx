@@ -8,6 +8,8 @@ import { Toaster } from "sonner";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { cn } from "@/lib/utils";
+import { LoadingOverlay } from "@/components/loading-overlay";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -19,7 +21,7 @@ const geistSans = Geist({
 });
 
 function RootLayoutClient({ children }: { children: React.ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const supabase = createClient();
 
@@ -40,13 +42,14 @@ function RootLayoutClient({ children }: { children: React.ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex min-h-screen">
+          <LoadingOverlay />
+          <div className="flex min-h-screen relative">
             <SidebarNav 
               isCollapsed={isCollapsed} 
               setIsCollapsed={setIsCollapsed} 
               user={{ email: userEmail }}
             />
-            <main className="flex-1 lg:pl-64">
+            <main className="flex-1 pl-16">
               <div className="flex-1 w-full flex flex-col gap-20 items-center">
                 <div className="flex flex-col gap-20 max-w-5xl p-5 w-full">
                   {children}

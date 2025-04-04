@@ -11,8 +11,14 @@ import {
 import { Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-const ThemeSwitcher = () => {
+interface ThemeSwitcherProps {
+  onOpenChange?: (open: boolean) => void;
+  size?: "sm" | "md" | "lg";
+}
+
+const ThemeSwitcher = ({ onOpenChange, size = "md" }: ThemeSwitcherProps) => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
@@ -25,12 +31,18 @@ const ThemeSwitcher = () => {
     return null;
   }
 
-  const ICON_SIZE = 16;
+  const ICON_SIZE = size === "sm" ? 14 : size === "lg" ? 18 : 16;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={"sm"}>
+        <Button 
+          variant="ghost" 
+          size={size === "sm" ? "sm" : "default"}
+          className={cn(
+            size === "sm" && "h-7 w-7 p-0"
+          )}
+        >
           {theme === "light" ? (
             <Sun
               key="light"
