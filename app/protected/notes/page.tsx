@@ -155,12 +155,6 @@ export default async function NotesPage(props: {
   return (
     <div className="flex-1 w-full">
       <div className="max-w-2xl mx-auto">
-        <Link href="/protected" className="inline-block mb-6">
-          <Button variant="ghost">
-            <ArrowLeft className="mr-2" size={16} />
-            Back
-          </Button>
-        </Link>
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Your Notes</h1>

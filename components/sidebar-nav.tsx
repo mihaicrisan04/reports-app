@@ -224,24 +224,19 @@ export function SidebarNav({
 
   const navItems = [
     {
-      title: "Dashboard",
+      title: "Home",
       href: "/protected",
       icon: Home,
     },
     {
-      title: "Classes",
-      href: "/protected/classes",
+      title: "Class",
+      href: "/protected/class",
       icon: School,
     },
     {
       title: "Children",
       href: "/protected/children",
       icon: UserCircle,
-    },
-    {
-      title: "Behaviours",
-      href: "/protected/behaviours",
-      icon: Activity,
     },
     {
       title: "Reports",
@@ -377,19 +372,13 @@ export function SidebarNav({
         {...props}
       >
         <div className="flex flex-col h-full">
-          <div className="h-16 flex items-center justify-center border-b">
-            <div className="flex items-center justify-center">
-              {isCollapsed ? (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
-                  R
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
-                    R
-                  </div>
-                  <span className="font-semibold">Reports App</span>
-                </div>
+          <div className="h-16 flex items-center border-b px-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
+                R
+              </div>
+              {!isCollapsed && (
+                <span className="font-semibold ml-2 whitespace-nowrap overflow-hidden text-ellipsis">Reports App</span>
               )}
             </div>
           </div>
