@@ -16,7 +16,9 @@ import {
   Settings, 
   UserCircle,
   School,
-  Activity
+  Activity,
+  User,
+  LogOut as LogOutIcon
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,6 +26,15 @@ import { useEffect, useState, useRef } from "react";
 import { ThemeSwitcher } from "./theme-switcher";
 import { LoadingOverlay } from "./loading-overlay";
 import { Avatar } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface User {
   email: string;
@@ -52,6 +63,7 @@ export function SidebarNav({
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -81,14 +93,14 @@ export function SidebarNav({
   // Handle hover effect
   useEffect(() => {
     const handleMouseEnter = () => {
-      if (isCollapsed && !isThemeDropdownOpen) {
+      if (isCollapsed && !isThemeDropdownOpen && !isProfileDropdownOpen) {
         setIsHovered(true);
         setIsCollapsed(false);
       }
     };
 
     const handleMouseLeave = () => {
-      if (!isCollapsed && !isThemeDropdownOpen) {
+      if (!isCollapsed && !isThemeDropdownOpen && !isProfileDropdownOpen) {
         // Add a small delay before collapsing to make the transition smoother
         timeoutRef.current = setTimeout(() => {
           setIsHovered(false);
@@ -112,13 +124,14 @@ export function SidebarNav({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isCollapsed, isThemeDropdownOpen]);
+  }, [isCollapsed, isThemeDropdownOpen, isProfileDropdownOpen]);
 
   // Handle clicks outside the sidebar and theme dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const sidebar = sidebarRef.current;
       const themeDropdown = document.querySelector('[data-radix-popper-content-id]');
+      const profileDropdown = document.querySelector('[data-radix-popper-content-id]');
       
       // If click is outside the sidebar
       if (sidebar && !sidebar.contains(event.target as Node)) {
@@ -128,8 +141,14 @@ export function SidebarNav({
           setIsThemeDropdownOpen(false);
           setIsCollapsed(true);
         } 
+        // If profile dropdown is open and click is outside both sidebar and dropdown
+        else if (isProfileDropdownOpen && profileDropdown && !profileDropdown.contains(event.target as Node)) {
+          // Close the dropdown and collapse the sidebar
+          setIsProfileDropdownOpen(false);
+          setIsCollapsed(true);
+        }
         // If theme dropdown is not open, just collapse the sidebar
-        else if (!isThemeDropdownOpen) {
+        else if (!isThemeDropdownOpen && !isProfileDropdownOpen) {
           setIsCollapsed(true);
         }
       }
@@ -139,25 +158,68 @@ export function SidebarNav({
         // Only close the theme dropdown, don't affect sidebar state
         setIsThemeDropdownOpen(false);
       }
+      // If click is inside the sidebar but outside the profile dropdown
+      else if (sidebar && sidebar.contains(event.target as Node) && 
+               isProfileDropdownOpen && profileDropdown && !profileDropdown.contains(event.target as Node)) {
+        // Only close the profile dropdown, don't affect sidebar state
+        setIsProfileDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isThemeDropdownOpen]);
+  }, [isThemeDropdownOpen, isProfileDropdownOpen]);
 
   // Add a separate effect to handle theme dropdown state changes
   useEffect(() => {
     // If theme dropdown closes, allow sidebar to collapse on mouse leave
-    if (!isThemeDropdownOpen && timeoutRef.current) {
+    if (!isThemeDropdownOpen && !isProfileDropdownOpen && timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-  }, [isThemeDropdownOpen]);
+  }, [isThemeDropdownOpen, isProfileDropdownOpen]);
+
+  // Handle profile dropdown state changes
+  useEffect(() => {
+    // If profile dropdown opens, prevent sidebar from collapsing
+    if (isProfileDropdownOpen) {
+      setIsCollapsed(false);
+    }
+  }, [isProfileDropdownOpen, setIsCollapsed]);
 
   const handleNavigation = (href: string) => {
     setIsLoading(true);
     router.push(href);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOutAction();
+      toast.success("Signed out successfully");
+      setIsProfileDropdownOpen(false);
+      setIsCollapsed(true);
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const handleProfileClick = () => {
+    setIsProfileDropdownOpen(false);
+    setIsCollapsed(true);
+    router.push("/protected/profile");
+  };
+
+  const handleAccountClick = () => {
+    setIsProfileDropdownOpen(false);
+    setIsCollapsed(true);
+    router.push("/protected/account");
+  };
+
+  // Prevent unnecessary re-renders when clicking inside the sidebar
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    // Stop propagation to prevent the global click handler from firing
+    e.stopPropagation();
   };
 
   const navItems = [
@@ -235,44 +297,69 @@ export function SidebarNav({
             </nav>
             <div className="mt-auto border-t pt-4 pb-4">
               <div className="flex flex-col gap-2 px-4">
-                <Link 
-                  href="/protected/profile" 
-                  className={cn(
-                    "flex items-center gap-2 rounded-md transition-colors hover:bg-accent",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <Avatar
-                    src={user?.image || undefined}
-                    alt={user?.name || user?.email || "User"}
-                    fallback={user?.name?.[0] || user?.email?.[0] || "U"}
-                    className={cn(
-                      "h-8 w-8",
-                      isCollapsed && "mx-auto"
-                    )}
-                  />
-                  {!isCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {user?.name || user?.email}
-                      </p>
-                    </div>
-                  )}
-                </Link>
-                {!isCollapsed && (
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => signOutAction()}
+                <DropdownMenu open={isProfileDropdownOpen} onOpenChange={setIsProfileDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      className={cn(
+                        "flex items-center gap-2 rounded-md transition-colors hover:bg-accent w-full",
+                        isCollapsed && "justify-center"
+                      )}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign out
-                    </Button>
-                    <ThemeSwitcher onOpenChange={setIsThemeDropdownOpen} size="sm" />
-                  </div>
-                )}
+                      <Avatar
+                        src={user?.image || undefined}
+                        alt={user?.name || user?.email || "User"}
+                        fallback={user?.name?.[0] || user?.email?.[0] || "U"}
+                        className={cn(
+                          "h-8 w-8",
+                          isCollapsed && "mx-auto"
+                        )}
+                      />
+                      {!isCollapsed && (
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {user?.name || user?.email}
+                          </p>
+                        </div>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 ml-2">
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      {user?.name || user?.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/protected/profile" className="flex items-center" onClick={handleProfileClick}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/protected/account" className="flex items-center" onClick={handleAccountClick}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Account Preferences</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5">
+                      <div className="flex items-center">
+                        <div className="flex items-center w-2/3">
+                          <button 
+                            onClick={handleSignOut}
+                            className="flex items-center text-destructive hover:text-destructive/90 transition-colors rounded-md px-2 py-1.5 hover:bg-accent w-full text-left"
+                          >
+                            <LogOutIcon className="mr-2 h-4 w-4" />
+                            <span>Sign out</span>
+                          </button>
+                        </div>
+                        <div className="h-6 w-px bg-border mx-2"></div>
+                        <div className="w-1/3 flex justify-center">
+                          <ThemeSwitcher onOpenChange={setIsThemeDropdownOpen} size="sm" />
+                        </div>
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -286,6 +373,7 @@ export function SidebarNav({
           isCollapsed ? "w-16" : "w-64",
           className
         )}
+        onClick={handleSidebarClick}
         {...props}
       >
         <div className="flex flex-col h-full">
@@ -339,44 +427,69 @@ export function SidebarNav({
 
           <div className="mt-auto border-t pt-4 pb-4">
             <div className="flex flex-col gap-2 px-4">
-              <Link 
-                href="/protected/profile" 
-                className={cn(
-                  "flex items-center gap-2 rounded-md transition-colors hover:bg-accent",
-                  isCollapsed && "justify-center"
-                )}
-              >
-                <Avatar
-                  src={user?.image || undefined}
-                  alt={user?.name || user?.email || "User"}
-                  fallback={user?.name?.[0] || user?.email?.[0] || "U"}
-                  className={cn(
-                    "h-8 w-8",
-                    isCollapsed && "mx-auto"
-                  )}
-                />
-                {!isCollapsed && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {user?.name || user?.email}
-                    </p>
-                  </div>
-                )}
-              </Link>
-              {!isCollapsed && (
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => signOutAction()}
+              <DropdownMenu open={isProfileDropdownOpen} onOpenChange={setIsProfileDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className={cn(
+                      "flex items-center gap-2 rounded-md transition-colors hover:bg-accent w-full",
+                      isCollapsed && "justify-center"
+                    )}
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign out
-                  </Button>
-                  <ThemeSwitcher onOpenChange={setIsThemeDropdownOpen} size="sm" />
-                </div>
-              )}
+                    <Avatar
+                      src={user?.image || undefined}
+                      alt={user?.name || user?.email || "User"}
+                      fallback={user?.name?.[0] || user?.email?.[0] || "U"}
+                      className={cn(
+                        "h-8 w-8",
+                        isCollapsed && "mx-auto"
+                      )}
+                    />
+                    {!isCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {user?.name || user?.email}
+                        </p>
+                      </div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 ml-2">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    {user?.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/protected/profile" className="flex items-center" onClick={handleProfileClick}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/protected/account" className="flex items-center" onClick={handleAccountClick}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Account Preferences</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center">
+                      <div className="flex items-center w-2/3">
+                        <button 
+                          onClick={handleSignOut}
+                          className="flex items-center text-destructive hover:text-destructive/90 transition-colors rounded-md px-2 py-1.5 hover:bg-accent w-full text-left"
+                        >
+                          <LogOutIcon className="mr-2 h-4 w-4" />
+                          <span>Sign out</span>
+                        </button>
+                      </div>
+                      <div className="h-6 w-px bg-border mx-2"></div>
+                      <div className="w-1/3 flex justify-center">
+                        <ThemeSwitcher onOpenChange={setIsThemeDropdownOpen} size="sm" />
+                      </div>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

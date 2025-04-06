@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import DeleteNoteButton from "@/components/ui/delete-button";
 
-export default async function NotePage({ params }: { params: { id: string } }) {
+export default async function NotePage(props: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
+  const params = await props.params;
 
   const {
     data: { user },

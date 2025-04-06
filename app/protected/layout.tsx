@@ -13,12 +13,27 @@ export default function DashboardLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
     const getUser = async () => {
+      // Get the authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email || '');
+      
+      if (user) {
+        // Get the user's name from the public.users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('name')
+          .eq('auth_user_id', user.id)
+          .single();
+          
+        if (userData && !error) {
+          setUserName(userData.name || '');
+        }
+      }
     };
     getUser();
   }, []);
@@ -28,7 +43,7 @@ export default function DashboardLayout({
       <SidebarNav 
         isCollapsed={isCollapsed} 
         setIsCollapsed={setIsCollapsed} 
-        user={{ email: userEmail }}
+        user={{ email: userEmail, name: userName }}
       />
       <main className="flex-1 pl-16">
         <div className="flex-1 w-full flex flex-col gap-20 items-center">
@@ -41,9 +56,6 @@ export default function DashboardLayout({
               {children}
             </Suspense>
           </div>
-          <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-            <p>Made with ❤️ </p>
-          </footer>
         </div>
       </main>
     </div>

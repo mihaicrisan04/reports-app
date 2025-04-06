@@ -1,21 +1,24 @@
 "use server";
 
 import { encodedRedirect } from "@/utils/utils";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createServiceRoleClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
+  const name = formData.get("name")?.toString();
+  const forename = formData.get("forename")?.toString();
+  const role = formData.get("role")?.toString();
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
 
-  if (!email || !password) {
+  if (!email || !password || !name || !forename || !role) {
     return encodedRedirect(
       "error",
       "/sign-up",
-      "Email and password are required",
+      "All fields are required",
     );
   }
 
@@ -28,36 +31,24 @@ export const signUpAction = async (formData: FormData) => {
   });
 
   if (authError) {
-    console.error(authError.code + " " + authError.message);
+    console.error("Auth error:", authError.code + " " + authError.message);
     return encodedRedirect("error", "/sign-up", authError.message);
   } 
 
-  // If auth was successful, we can create a new user in public.users table
+  // If auth was successful, create a new user in public.users table
   if (authData.user) {
-    const { data: existingUser } = await supabase
+    const { error: insertError } = await supabase
       .from('users')
-      .select('*')
-      .eq('auth_user_id', authData.user.id)
-      .single();
+      .insert([{
+        auth_user_id: authData.user.id,
+        email: email,
+        name: `${forename} ${name}`,
+        role: role
+      }]);
 
-    if (!existingUser) {
-      const { error: dbError } = await supabase
-        .from('users') // Remove 'public.' prefix
-        .insert([{  // Wrap in array
-          auth_user_id: authData.user.id,
-          name: email.split('@')[0],
-          role: 'educator'
-        }]);
-
-      if (dbError) {
-        console.error("Full database error:", {
-          message: dbError.message,
-          details: dbError.details,
-          hint: dbError.hint,
-          code: dbError.code
-        });
-        return encodedRedirect("error", "/sign-up", "Could not create user");
-      }
+    if (insertError) {
+      console.error("Error creating user record:", insertError);
+      return encodedRedirect("error", "/sign-up", "Could not create user profile");
     }
   }
 

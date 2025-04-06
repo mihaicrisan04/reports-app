@@ -134,11 +134,10 @@ async function NotesList({
   );
 }
 
-export default async function NotesPage({
-  searchParams,
-}: {
-  searchParams: { sort?: string; page?: string };
+export default async function NotesPage(props: {
+  searchParams: Promise<{ sort?: string; page?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const currentPage = Number(searchParams.page) || 1;
 

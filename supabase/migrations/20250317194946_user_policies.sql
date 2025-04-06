@@ -16,3 +16,10 @@ CREATE POLICY "Users can delete own record"
 ON public.users
 FOR DELETE
 USING (auth.uid()::text = auth_user_id::text);
+
+-- Allow service role to insert new users
+CREATE POLICY "Service role can insert users"
+ON public.users
+FOR INSERT
+TO service_role
+WITH CHECK (true);

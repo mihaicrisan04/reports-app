@@ -3,8 +3,8 @@ import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;
@@ -39,13 +39,27 @@ export default async function Signup(props: {
             minLength={6}
             required
           />
+          <Label htmlFor="name">Name</Label>
+          <Input name="name" placeholder="Your name" required />
+          <Label htmlFor="forename">Forename</Label>
+          <Input name="forename" placeholder="Your forename" required />
+          <Label htmlFor="role">Role</Label>
+          <Select name="role" required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select your role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="educator">Educator</SelectItem>
+              <SelectItem value="parent">Parent</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
           <SubmitButton formAction={signUpAction} pendingText="Signing up...">
             Sign up
           </SubmitButton>
           <FormMessage message={searchParams} />
         </div>
       </form>
-      <SmtpMessage />
     </>
   );
 }
