@@ -15,9 +15,10 @@ export type SortOption = "created_desc" | "created_asc" | "title_asc" | "title_d
 
 interface SortDropdownProps {
   currentSort: SortOption;
+  onSortChange?: (sort: SortOption) => void;
 }
 
-export function SortDropdown({ currentSort }: SortDropdownProps) {
+export function SortDropdown({ currentSort, onSortChange }: SortDropdownProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -31,7 +32,11 @@ export function SortDropdown({ currentSort }: SortDropdownProps) {
   );
 
   const handleSort = (sort: SortOption) => {
-    router.push(`?${createQueryString('sort', sort)}`);
+    if (onSortChange) {
+      onSortChange(sort);
+    } else {
+      router.push(`?${createQueryString('sort', sort)}`);
+    }
   };
 
   const getActiveLabel = () => {
